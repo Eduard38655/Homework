@@ -1,0 +1,254 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+// Clase base abstracta para la correspondencia
+class Correspondencia {
+public:
+    string destinatario;
+    string remitente;
+
+    // Funciones virtuales puras
+    virtual void despachar() const = 0;
+    virtual double calcular_costo() const = 0;
+    virtual void mostrar_datos() const = 0;
+    virtual ~Correspondencia() {} // Destructor virtual para la eliminación polimórfica
+};
+
+// Clase para cartas
+class Carta : public Correspondencia {
+public:
+    string fecha_envio;
+    bool del_exterior;
+
+    Carta(string dest, string rem, string fecha, bool exterior) : fecha_envio(fecha), del_exterior(exterior) {
+        destinatario = dest;
+        remitente = rem;
+    }
+
+    void despachar() const override {
+        cout << "Despachando Carta para " << destinatario << endl;
+    }
+
+    double calcular_costo() const override {
+        return del_exterior ? 10 : 8;
+    }
+
+    void mostrar_datos() const override {
+        cout << "Tipo: Carta" << endl;
+        cout << "Destinatario: " << destinatario << endl;
+        cout << "Remitente: " << remitente << endl;
+        cout << "Fecha de envio: " << fecha_envio << endl;
+        cout << "Es del exterior: " << (del_exterior ? "Si" : "No") << endl;
+    }
+};
+
+// Clase para telegramas
+class Telegrama : public Correspondencia {
+public:
+    int palabras;
+    double impuesto;
+
+    Telegrama(string dest, string rem, int pal, double imp) : palabras(pal), impuesto(imp) {
+        destinatario = dest;
+        remitente = rem;
+    }
+
+    void despachar() const override {
+        cout << "Despachando Telegrama para " << destinatario << endl;
+    }
+
+    double calcular_costo() const override {
+        return palabras * 2 + impuesto;
+    }
+
+    void mostrar_datos() const override {
+        cout << "Tipo: Telegrama" << endl;
+        cout << "Destinatario: " << destinatario << endl;
+        cout << "Remitente: " << remitente << endl;
+        cout << "Cantidad de palabras: " << palabras << endl;
+        cout << "Impuesto: " << impuesto << endl;
+    }
+};
+
+// Clase para bultos postales
+class BultoPostal : public Correspondencia {
+public:
+    double peso;
+    string urgencia;
+
+    BultoPostal(string dest, string rem, double p, string urg) : peso(p), urgencia(urg) {
+        destinatario = dest;
+        remitente = rem;
+    }
+
+    void despachar() const override {
+        cout << "Despachando Bulto Postal para " << destinatario << endl;
+    }
+
+    double calcular_costo() const override {
+        double costo_base = peso * 4;
+        if (urgencia == "urgente") return costo_base + 10;
+        if (urgencia == "medio") return costo_base + 8;
+        return costo_base;
+    }
+
+    void mostrar_datos() const override {
+        cout << "Tipo: Bulto Postal" << endl;
+        cout << "Destinatario: " << destinatario << endl;
+        cout << "Remitente: " << remitente << endl;
+        cout << "Peso: " << peso << endl;
+        cout << "Urgencia: " << urgencia << endl;
+    }
+};
+
+// Clase para la oficina de correo
+class OficinaCorreo {
+private:
+    vector<Correspondencia*> correspondencia;
+
+public:
+    ~OficinaCorreo() {
+        for (auto& mensaje : correspondencia) {
+            delete mensaje;
+        }
+    }
+
+    void recibir_correspondencia(Correspondencia* mensaje) {
+        correspondencia.push_back(mensaje);
+        cout << "Correspondencia recibida: " << mensaje->destinatario << " de " << mensaje->remitente << endl;
+    }
+
+    void despachar_correspondencia() {
+        sort(correspondencia.begin(), correspondencia.end(), [](const Correspondencia* a, const Correspondencia* b) {
+            return a->calcular_costo() > b->calcular_costo();
+        });
+
+        for (const auto& mensaje : correspondencia) {
+            mensaje->despachar();
+        }
+        correspondencia.clear();
+    }
+
+    void entregar_personalmente(string nombre, string direccion) {
+        auto it = find_if(correspondencia.begin(), correspondencia.end(), [&](Correspondencia* mensaje) {
+            return mensaje->destinatario == nombre && mensaje->remitente == direccion;
+        });
+
+        if (it != correspondencia.end()) {
+            cout << "Entregando correspondencia personalmente a " << nombre << " en " << direccion << endl;
+            delete *it;
+            correspondencia.erase(it);
+        } else {
+            cout << "No se encontró la correspondencia para la entrega personal." << endl;
+        }
+    }
+
+    void mostrar_correspondencia() const {
+        cout << "\nCorrespondencia almacenada:" << endl;
+        for (const auto& mensaje : correspondencia) {
+            mensaje->mostrar_datos();
+            cout << endl;
+        }
+    }
+
+    double calcular_ganancias() const {
+        double ganancias = 0;
+        for (const auto& mensaje : correspondencia) {
+            ganancias += mensaje->calcular_costo();
+        }
+        return ganancias;
+    }
+};
+
+int main() {
+    OficinaCorreo oficina;
+
+    int opcion;
+    do {
+        cout << "\nMenu:\n";
+        cout << "1. Recibir correspondencia\n";
+        cout << "2. Despachar correspondencia\n";
+        cout << "3. Entregar correspondencia personalmente\n";
+        cout << "4. Mostrar correspondencia ingresada\n";
+        cout << "5. Calcular ganancias\n";
+        cout << "6. Salir\n";
+        cout << "Seleccione una opcion: ";
+        cin >> opcion;
+
+        switch (opcion) {
+            case 1: {
+                cout << "\nTipos de correspondencia:\n";
+                cout << "1. Carta\n";
+                cout << "2. Telegrama\n";
+                cout << "3. Bulto Postal\n";
+                cout << "Seleccione el tipo de correspondencia: ";
+                int tipo;
+                cin >> tipo;
+
+                string dest, rem;
+                cout << "Ingrese el destinatario: ";
+                cin >> dest;
+                cout << "Ingrese el remitente: ";
+                cin >> rem;
+
+                if (tipo == 1) {
+                    string fecha;
+                    bool exterior;
+                    cout << "Ingrese la fecha de envio: ";
+                    cin >> fecha;
+                    cout << "¿Es del exterior? (1: Si, 0: No): ";
+                    cin >> exterior;
+                    oficina.recibir_correspondencia(new Carta(dest, rem, fecha, exterior));
+                } else if (tipo == 2) {
+                    int palabras;
+                    double impuesto;
+                    cout << "Ingrese la cantidad de palabras: ";
+                    cin >> palabras;
+                    cout << "Ingrese el impuesto: ";
+                    cin >> impuesto;
+                    oficina.recibir_correspondencia(new Telegrama(dest, rem, palabras, impuesto));
+                } else if (tipo == 3) {
+                    double peso;
+                    string urgencia;
+                    cout << "Ingrese el peso: ";
+                    cin >> peso;
+                    cout << "Ingrese la urgencia (urgente/medio/indiferente): ";
+                    cin >> urgencia;
+                    oficina.recibir_correspondencia(new BultoPostal(dest, rem, peso, urgencia));
+                } else {
+                    cout << "Opcion invalida." << endl;
+                }
+                break;
+            }
+            case 2:
+                oficina.despachar_correspondencia();
+                break;
+            case 3: {
+                string nombre, direccion;
+                cout << "Ingrese el nombre del destinatario: ";
+                cin >> nombre;
+                cout << "Ingrese la direccion del destinatario: ";
+                cin >> direccion;
+                oficina.entregar_personalmente(nombre, direccion);
+                break;
+            }
+            case 4:
+                oficina.mostrar_correspondencia();
+                break;
+            case 5:
+                cout << "Ganancias totales: $" << oficina.calcular_ganancias() << endl;
+                break;
+            case 6:
+                cout << "Saliendo del programa." << endl;
+                break;
+            default:
+                cout << "Opcion invalida." << endl;
+        }
+    } while (opcion != 6);
+
+    return 0;
+}
+
